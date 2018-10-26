@@ -10,6 +10,9 @@ map <buffer> gd /def <C-R><C-W><CR>
 set foldmethod=expr
 set foldexpr=PythonFoldExpr(v:lnum)
 set foldtext=PythonFoldText()
+let b:indocstring = 0
+let b:infuncdef = 0
+let b:func_indent = -1
 
 map <buffer> f za
 map <buffer> F :call ToggleFold()<CR>
@@ -52,20 +55,36 @@ endfunction
 
 function! PythonFoldExpr(lnum)
 
-    if indent( nextnonblank(a:lnum) ) == 0
-        return 0
-    endif
-    
     if getline(a:lnum-1) =~ '^\(class\|def\)\s'
-        return 1
-    endif
+        let b:func_indent = indent(a:lnum-1)
+        if getline(a:lnum-1) !~ '):$'
+            let b:infuncdef = 1
+        else
+            return 'a1'
+        endif
+
+    elseif (b:infuncdef && getline(a:lnum-1) =~ '):$')
+            let b:infuncdef = 0
+            return 'a1'
+
+    elseif (getline(a:lnum-1) =~ '"""' || getline(a:lnum-1) =~ "'''")
+        if b:indocstring
+            let b:indocstring = 0
+        else
+            let b:indocstring = 1
+            return 'a1'
+        endif
         
-    if getline(a:lnum) =~ '^\s*$'
-        return "="
-    endif
-    
-    if indent(a:lnum) == 0
-        return 0
+    elseif b:indocstring
+        if (getline(a:lnum) =~ '"""' || getline(a:lnum) =~ "'''")
+            return 's1'
+        endif
+   
+    elseif (b:func_indent >= 0 && !b:indocstring)
+        if indent(nextnonblank(a:lnum)) <= b:func_indent
+            let b:func_indent = -1
+            return 's1'
+        endif
     endif
 
     return '='
