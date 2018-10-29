@@ -4,6 +4,9 @@ finish
 endif
 let b:did_ftplugin = 1
 
+autocmd InsertLeave,WinEnter * setlocal foldmethod=expr
+autocmd InsertEnter,WinLeave * setlocal foldmethod=manual
+
 map <buffer> <S-e> :w<CR>:!/usr/bin/env python % <CR>
 map <buffer> gd /def <C-R><C-W><CR> 
 
@@ -14,8 +17,8 @@ let b:indocstring = 0
 let b:infuncdef = 0
 let b:func_indent = -1
 
-map <buffer> f za
-map <buffer> F :call ToggleFold()<CR>
+nnoremap <buffer> f za
+nnoremap <buffer> F :call ToggleFold()<CR>
 let b:folded = 1
 
 function! ToggleFold()
@@ -40,7 +43,7 @@ function! PythonFoldText()
     if size < 1000
         let size = " " . size
     endif
-    
+
     if match(getline(v:foldstart), '"""') >= 0
         let text = substitute(getline(v:foldstart), '"""', '', 'g' ) . ' '
     elseif match(getline(v:foldstart), "'''") >= 0
@@ -48,7 +51,7 @@ function! PythonFoldText()
     else
         let text = getline(v:foldstart)
     endif
-    
+
     return size . ' lines:'. text . ' '
 
 endfunction
@@ -74,12 +77,12 @@ function! PythonFoldExpr(lnum)
             let b:indocstring = 1
             return 'a1'
         endif
-        
+
     elseif b:indocstring
         if (getline(a:lnum) =~ '"""' || getline(a:lnum) =~ "'''")
             return 's1'
         endif
-   
+
     elseif (b:func_indent >= 0 && !b:indocstring)
         if indent(nextnonblank(a:lnum)) <= b:func_indent
             let b:func_indent = -1
@@ -99,6 +102,10 @@ function! ReFold()
     set foldmethod=expr
     set foldexpr=PythonFoldExpr(v:lnum)
     set foldtext=PythonFoldText()
+    let b:indocstring = 0
+    let b:infuncdef = 0
+    let b:func_indent = -1
+    let b:folded = 1
     echo 
 endfunction
 
